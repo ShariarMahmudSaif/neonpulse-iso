@@ -14,9 +14,7 @@ efi_secure_boot="no"
 
 # Boot modes - REQUIRED by archiso
 bootmodes=(
-    'uefi-x64'
     'uefi-x64.grub'
-    'bios.syslinux'
 )
 
 # Pacman configuration file

@@ -12,9 +12,6 @@ intel-ucode
 efibootmgr
 efivar
 grub
-syslinux
-mtools
-dosfstools
 
 # File Systems & Storage
 btrfs-progs
