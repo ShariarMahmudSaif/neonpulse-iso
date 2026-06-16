@@ -64,11 +64,8 @@ build_iso() {
     log_step "This may take 10-30 minutes depending on system speed and internet"
     
     # Use the correct, minimal boot mode for modern UEFI systems
-    sudo mkarchiso -v -w "$BUILD_DIR" -o "$OUT_DIR" \
-        --profiledef "$ARCHISO_DIR/profiledef.sh" \
-        --arch "x86_64" \
-        --host-arch "x86_64" \
-        --bootmodes "uefi-x64"
+    sudo mkarchiso -v -w "$BUILD_DIR" -o "$OUT_DIR" "$ARCHISO_DIR"
+
     
     if [[ $? -ne 0 ]]; then
         log_error "ISO build failed"
