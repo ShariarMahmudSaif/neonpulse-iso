@@ -1,0 +1,132 @@
+{
+  "layer": "top",
+  "position": "top",
+  "height": 35,
+  "margin": "10 15 0 15",
+  "modules-left": ["hyprland/workspaces"],
+  "modules-center": ["cpu", "memory", "temperature", "clock"],
+  "modules-right": ["battery", "network", "bluetooth", "pulseaudio", "tray"],
+  
+  "hyprland/workspaces": {
+    "format": "{icon}",
+    "on-click": "activate",
+    "on-scroll-up": "hyprctl dispatch workspace e+1",
+    "on-scroll-down": "hyprctl dispatch workspace e-1",
+    "format-icons": {
+      "1": "󰣇",
+      "2": "󰘙",
+      "3": "󰓓",
+      "4": "󰚀",
+      "5": "󰖨",
+      "6": "󰎨",
+      "7": "󰎬",
+      "8": "󰎤",
+      "9": "󰎧",
+      "10": "󰎪"
+    },
+    "persistent-workspaces": {
+      "*": 10
+    }
+  },
+
+  "cpu": {
+    "interval": 1,
+    "format": "  {usage}% | {avg_frequency:.1f}GHz",
+    "max-length": 20,
+    "on-click": "kitty -e htop"
+  },
+
+  "memory": {
+    "interval": 2,
+    "format": "  {percentage}% | {used:.1f}G",
+    "max-length": 20,
+    "on-click": "kitty -e htop"
+  },
+
+  "temperature": {
+    "thermal-zone": 0,
+    "format": " {temperatureC}°C",
+    "critical-threshold": 90,
+    "format-critical": "󰸃 {temperatureC}°C",
+    "on-click": "kitty -e sensors"
+  },
+
+  "clock": {
+    "format": " {:%H:%M} 📅 {:%a %d %b}",
+    "format-alt": "{:%Y-%m-%d | %H:%M:%S}",
+    "tooltip-format": "<tt><big>{calendar}</big></tt>",
+    "calendar": {
+      "mode": "month",
+      "mode-mon-col": 3,
+      "weeks-pos": "right",
+      "on-scroll": 1,
+      "on-click-right": "mode",
+      "format": {
+        "months": "<span color='#ff00ff'><b>{}</b></span>",
+        "days": "<span color='#00ffff'><b>{}</b></span>",
+        "weeks": "<span color='#9d00ff'><b>W{}</b></span>",
+        "weekdays": "<span color='#ff1493'><b>{}</b></span>",
+        "today": "<span color='#00ff00' background='#1a1a1a'><b>{}</b></span>"
+      }
+    },
+    "actions": {
+      "on-click-right": "mode",
+      "on-click-forward": "gio open https://calendar.google.com",
+      "on-scroll-up": "shift_up",
+      "on-scroll-down": "shift_down"
+    }
+  },
+
+  "battery": {
+    "states": {
+      "good": 80,
+      "warning": 30,
+      "critical": 15
+    },
+    "format": "{icon} {capacity}%",
+    "format-charging": "󰂄 {capacity}%",
+    "format-plugged": " {capacity}%",
+    "format-alt": "{time} {icon}",
+    "format-full": " {capacity}%",
+    "format-icons": ["󰂎", "󰁾", "󰁿", "󰂀", "󰂁", "󰂂", "󰁹"],
+    "on-click": "kitty -e nvtop"
+  },
+
+  "network": {
+    "format-wifi": "󰤨 {essid}",
+    "format-ethernet": "󰈀 Wired",
+    "format-disconnected": "󰤭 Offline",
+    "on-click": "nmtui",
+    "max-length": 25
+  },
+
+  "bluetooth": {
+    "format": "󰂯",
+    "format-connected": "󰂯 {num_connections}",
+    "on-click": "blueman-manager"
+  },
+
+  "pulseaudio": {
+    "format": "{icon} {volume}%",
+    "format-muted": "󰖁 {volume}%",
+    "on-click": "pavucontrol-qt",
+    "on-scroll-up": "pactl set-sink-volume @DEFAULT_SINK@ +1%",
+    "on-scroll-down": "pactl set-sink-volume @DEFAULT_SINK@ -1%",
+    "scroll-step": 1,
+    "format-icons": {
+      "headphone": "",
+      "hands-free": "",
+      "headset": "",
+      "phone": "",
+      "portable": "",
+      "car": "",
+      "default": ["󰕿", "󰖀", "󰕾"]
+    }
+  },
+
+  "tray": {
+    "icon-size": 18,
+    "spacing": 8,
+    "show-passive-items": true
+  }
+}

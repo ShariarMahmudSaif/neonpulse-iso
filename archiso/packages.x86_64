@@ -1,0 +1,265 @@
+# NeonPulse OS - Package List for Archiso
+# Base System
+base
+base-devel
+linux-zen
+linux-zen-headers
+linux-firmware
+amd-ucode
+intel-ucode
+efibootmgr
+grub
+efivar
+
+# File Systems & Storage
+btrfs-progs
+f2fs-tools
+ntfs-3g
+exfat-utils
+e2fsprogs
+
+# Networking & Internet
+networkmanager
+iw
+wpa_supplicant
+curl
+wget
+rsync
+
+# Display & Graphics
+xorg-server
+xwayland
+libxcb
+libxrandr
+mesa
+lib32-mesa
+libva-intel-driver
+libva-amd-driver
+libva-mesa-driver
+nvidia
+nvidia-utils
+lib32-nvidia-utils
+cuda
+nvidia-prime
+amdgpu
+radeon
+
+# Vulkan & Graphics APIs
+vulkan-icd-loader
+lib32-vulkan-icd-loader
+vulkan-intel
+lib32-vulkan-intel
+vulkan-radeon
+lib32-vulkan-radeon
+vulkan-extra-layers
+lib32-vulkan-extra-layers
+
+# DirectX Support (via Proton)
+vkd3d-proton
+lib32-vkd3d-proton
+dxvk-bin
+lib32-dxvk-bin
+d3d12-core
+
+# Ray Tracing & Advanced Graphics
+lib32-libxvmc
+libvdpau
+lib32-libvdpau
+libvdpau-va-gl
+lib32-libvdpau-va-gl
+
+# NVIDIA OptiX (Ray Tracing)
+nvidia-utils
+cuda-runtime
+lib32-nvidia-utils
+
+# Desktop Environment - Hyprland
+hyprland
+hyprlock
+hypridle
+hyprpaper
+xdg-desktop-portal-hyprland
+xdg-user-dirs
+qt5-wayland
+qt6-wayland
+
+# Waybar - Top Bar
+waybar
+
+# Theme & Aesthetics
+kvantum
+qt5ct
+gtk-engine-murrine
+
+# Audio
+pipewire
+pipewire-pulse
+pipewire-jack
+wireplumber
+pavucontrol-qt
+
+# Brightness & Power
+brightnessctl
+power-profiles-daemon
+tlp
+thermald
+
+# Bluetooth
+bluez
+bluez-utils
+
+# Input & Keyboard
+libxkbcommon
+xkbcommon
+
+# Fonts & Text Rendering
+ttf-fira-code
+ttf-jetbrains-mono
+ttf-noto-nerd
+noto-fonts
+ttf-liberation
+
+# Terminal & Shells
+bash
+zsh
+zsh-completions
+kitty
+alacritty
+
+# File Managers
+thunar
+thunar-volman
+tumbler
+ark
+p7zip
+
+# Browser
+brave-browser
+uget
+
+# Media Players & Editors
+vlc
+mpv
+lollypop
+audacious
+
+# Video Editing & Graphics
+blender
+kdenlive
+shotcut
+krita
+gimp
+audacity
+imagemagick
+ffmpeg
+
+# Gaming
+steam
+steam-native-runtime
+gamemode
+gamemoded
+mangohud
+proton-ge-custom-bin
+lutris
+heroic-games-launcher-bin
+
+# Development Tools
+git
+github-cli
+code
+vim
+neovim
+tmux
+htop
+btop
+bashtop
+neofetch
+tree
+ripgrep
+fd
+bat
+
+# System Utilities
+pacman-contrib
+yay-bin
+lm-sensors
+hwinfo
+inxi
+lsof
+strace
+perf
+
+# Security & Monitoring
+clamav
+rkhunter
+apparmor
+firejail
+flatpak
+fail2ban
+openssh
+gnupg
+openssl
+
+# Virtual Machine Support
+qemu
+virtualbox
+virt-manager
+
+# Container Tools
+docker
+docker-compose
+
+# Java & Runtime Support
+jre-openjdk
+jdk-openjdk
+
+# Python Support
+python
+python-pip
+
+# Node.js Support
+nodejs
+npm
+
+# Compression & Archives
+zip
+unzip
+gzip
+xz
+
+# Documentation & Help
+man-db
+man-pages
+texinfo
+
+# Localization
+adobe-source-han-sans-cn-fonts
+adobe-source-han-sans-jp-fonts
+adobe-source-han-sans-kr-fonts
+
+# System Services
+systemd
+systemd-boot
+dbus
+elogind
+
+# Performance & Resource Management
+earlyoom
+zram-generator
+
+# Miscellaneous Utilities
+less
+groff
+which
+findutils
+coreutils
+diffutils
+sed
+gawk
+grep
+
+# AUR Packages (to be installed after Arch Linux setup)
+# proton-ge-custom-bin
+# mangohud-bin
+# yay-bin
+# heroic-games-launcher-bin

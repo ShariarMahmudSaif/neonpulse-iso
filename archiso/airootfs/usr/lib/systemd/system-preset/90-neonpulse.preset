@@ -1,0 +1,11 @@
+# NeonPulse OS - SystemD Preset Configuration
+# Enable essential services and disable unnecessary ones
+
+enable NetworkManager.service
+enable bluetooth.service
+enable thermald.service
+enable power-profiles-daemon.service
+enable earlyoom.service
+
+disable avahi-daemon.service
+disable cups.service

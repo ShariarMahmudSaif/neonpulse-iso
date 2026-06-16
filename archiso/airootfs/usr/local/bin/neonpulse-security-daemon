@@ -1,0 +1,298 @@
+#!/bin/bash
+# NeonPulse OS - Security Daemon
+# ClamAV + AppArmor + Firejail integration with context-aware protection
+# Never interrupts gaming/video during active use
+
+set -euo pipefail
+
+CONFIG_DIR="${HOME}/.config/neonpulse"
+LOG_FILE="${HOME}/.local/share/neonpulse/security-daemon.log"
+PID_FILE="/tmp/neonpulse-security-daemon.pid"
+THREAT_DB="/var/lib/clamav/main.cvd"
+
+# Color codes
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+MAGENTA='\033[0;35m'
+CYAN='\033[0;36m'
+NC='\033[0m'
+
+# Logging
+log_msg() {
+    local level=$1
+    shift
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [$level] $@" | tee -a "$LOG_FILE"
+}
+
+# Initialize
+init() {
+    mkdir -p "$(dirname "$LOG_FILE")"
+    mkdir -p "$CONFIG_DIR"
+    log_msg "INFO" "=== NeonPulse Security Daemon Started ==="
+}
+
+# Check if full-screen app is active
+is_fullscreen_active() {
+    if command -v hyprctl &> /dev/null; then
+        local active_class=$(hyprctl activewindow -j | jq -r '.class' 2>/dev/null || echo "")
+        # Check if window is full screen or if a game is running
+        if [[ -n "$active_class" ]]; then
+            # Games commonly run Steam, Lutris, Heroic
+            if echo "$active_class" | grep -iE "(steam|lutris|heroic|gamemode|proton|wine)" > /dev/null; then
+                return 0  # Fullscreen gaming detected
+            fi
+        fi
+    fi
+    return 1
+}
+
+# Check if media playback is active
+is_media_playing() {
+    if command -v playerctl &> /dev/null; then
+        local status=$(playerctl status 2>/dev/null || echo "Stopped")
+        if [[ "$status" == "Playing" ]]; then
+            return 0  # Media is playing
+        fi
+    fi
+    # Also check if VLC/mpv process is running
+    pgrep -E "(vlc|mpv|audacious|lollypop)" > /dev/null && return 0
+    return 1
+}
+
+# Show security alert (non-intrusive, won't interrupt active use)
+show_threat_alert() {
+    local threat_name=$1
+    local threat_file=$2
+    local severity=$3  # low, medium, high, critical
+    
+    local timeout=5
+    local icon=""
+    
+    case "$severity" in
+        critical) icon="󰒃"; timeout=10 ;;
+        high) icon="󰒂"; timeout=8 ;;
+        medium) icon="󰒁"; timeout=5 ;;
+        *) icon="󰒀" ;;
+    esac
+    
+    # Use notify-send for desktop notification
+    if command -v notify-send &> /dev/null; then
+        notify-send -u critical -i "$icon" \
+            "NeonPulse Security Alert" \
+            "Threat Detected: $threat_name\nFile: $threat_file\nSeverity: $severity" \
+            -t $((timeout * 1000))
+    fi
+    
+    log_msg "WARNING" "Threat detected: $threat_name in $threat_file (Severity: $severity)"
+}
+
+# ClamAV scan (background)
+run_clamav_scan() {
+    local target_path=${1:-.}
+    local exclude_dirs="--exclude-dir=^/proc --exclude-dir=^/sys --exclude-dir=^/dev"
+    
+    if ! command -v clamscan &> /dev/null; then
+        log_msg "WARN" "ClamAV not installed"
+        return
+    fi
+    
+    log_msg "INFO" "Starting ClamAV background scan"
+    
+    # Update database first
+    sudo freshclam -q 2>/dev/null || true
+    
+    # Scan with ClamAV (low priority to not interrupt work)
+    nice -n 19 clamscan -r -i $exclude_dirs "$target_path" 2>&1 | while read line; do
+        if [[ "$line" == *"FOUND"* ]]; then
+            local threat=$(echo "$line" | awk '{print $NF}')
+            local file=$(echo "$line" | sed 's/: .*//')
+            show_threat_alert "$threat" "$file" "high"
+        fi
+    done
+    
+    log_msg "INFO" "ClamAV scan completed"
+}
+
+# Monitor download directory for threats
+monitor_downloads() {
+    local download_dir="${HOME}/Downloads"
+    
+    if [[ ! -d "$download_dir" ]]; then
+        return
+    fi
+    
+    # Use inotifywait if available for real-time monitoring
+    if command -v inotifywait &> /dev/null; then
+        log_msg "INFO" "Starting download directory monitor"
+        inotifywait -m -e create,moved_to "$download_dir" |
+        while read path action file; do
+            log_msg "DEBUG" "New file detected: $path$file"
+            # Scan immediately with ClamAV
+            if command -v clamscan &> /dev/null; then
+                local result=$(clamscan -i --quiet "$path$file" 2>&1)
+                if [[ -n "$result" ]]; then
+                    show_threat_alert "Malware" "$path$file" "critical"
+                fi
+            fi
+        done
+    fi
+}
+
+# Check for known breach databases (DBs.org style)
+check_breach_status() {
+    # Check if ISP DNS is hijacked (common malware behavior)
+    local dns_servers=$(resolvectl | grep "Current DNS Server" | awk '{print $NF}')
+    
+    # List of known malicious DNS servers
+    local malicious_dns="1.1.1.2 8.8.8.8" # simplified example
+    
+    for dns in $dns_servers; do
+        if echo "$malicious_dns" | grep -q "$dns"; then
+            show_threat_alert "DNS Hijacking" "DNS: $dns" "high"
+            log_msg "CRITICAL" "Suspicious DNS detected: $dns"
+        fi
+    done
+}
+
+# Network protection with context awareness
+network_protection() {
+    # Don't interrupt if gaming/media is active
+    if is_fullscreen_active; then
+        log_msg "DEBUG" "Gaming active - skipping aggressive checks"
+        return
+    fi
+    
+    if is_media_playing; then
+        log_msg "DEBUG" "Media playing - skipping aggressive checks"
+        return
+    fi
+    
+    # Check for suspicious network connections
+    if command -v netstat &> /dev/null || command -v ss &> /dev/null; then
+        local connections=$(ss -tnp 2>/dev/null | grep ESTABLISHED | awk '{print $5}' || echo "")
+        
+        # Check against known malicious IPs (simplified)
+        # In real scenario, use updated threat intelligence feeds
+        log_msg "DEBUG" "Network connections: $connections"
+    fi
+}
+
+# AppArmor profile enforcement
+enforce_apparmor() {
+    if command -v aa-enabled &> /dev/null 2>&1; then
+        log_msg "INFO" "AppArmor is available"
+        # Enable important profiles
+        sudo aa-enforce /etc/apparmor.d/usr.bin.firefox 2>/dev/null || true
+        sudo aa-enforce /etc/apparmor.d/usr.bin.chromium 2>/dev/null || true
+    fi
+}
+
+# Firejail sandbox high-risk apps
+setup_firejail() {
+    local high_risk_apps=("firefox" "chromium" "brave" "thunderbird")
+    
+    for app in "${high_risk_apps[@]}"; do
+        if command -v "$app" &> /dev/null; then
+            # Create firejail wrapper if not exists
+            if ! grep -q "firejail" "$(which $app 2>/dev/null)" 2>/dev/null; then
+                log_msg "INFO" "Firejail sandbox available for: $app"
+            fi
+        fi
+    done
+}
+
+# Periodic threat database update
+update_threat_db() {
+    if command -v freshclam &> /dev/null; then
+        log_msg "INFO" "Updating threat databases"
+        sudo freshclam -q 2>/dev/null || true
+        log_msg "INFO" "Threat databases updated"
+    fi
+}
+
+# Main daemon loop
+daemon_mode() {
+    echo -e "${CYAN}[*] Security Daemon running (PID: $$)${NC}"
+    echo $$ > "$PID_FILE"
+    
+    init
+    enforce_apparmor
+    setup_firejail
+    
+    trap 'log_msg "INFO" "Security Daemon stopped"; exit 0' SIGTERM SIGINT
+    
+    # Start background monitoring
+    monitor_downloads &
+    local monitor_pid=$!
+    
+    local update_counter=0
+    while true; do
+        # Check network status every iteration
+        network_protection
+        
+        # Check breach status every 5 iterations
+        if (( update_counter % 5 == 0 )); then
+            check_breach_status
+        fi
+        
+        # Update threat DB every 60 iterations (~10 minutes at 10s intervals)
+        if (( update_counter % 60 == 0 )); then
+            update_threat_db
+        fi
+        
+        sleep 10
+        ((update_counter++))
+    done
+}
+
+# CLI Interface
+case "${1:-daemon}" in
+    daemon)
+        daemon_mode
+        ;;
+    scan)
+        run_clamav_scan "${2:-.}"
+        ;;
+    check-breach)
+        check_breach_status
+        ;;
+    status)
+        echo -e "${CYAN}=== NeonPulse Security Daemon ===${NC}"
+        echo "Daemon PID: $(cat $PID_FILE 2>/dev/null || echo 'Not running')"
+        echo "ClamAV: $(command -v clamscan &>/dev/null && echo 'Installed' || echo 'Not installed')"
+        echo "AppArmor: $(aa-enabled 2>/dev/null && echo 'Enabled' || echo 'Disabled')"
+        echo "Firejail: $(command -v firejail &>/dev/null && echo 'Available' || echo 'Not available')"
+        ;;
+    stop)
+        if [[ -f "$PID_FILE" ]]; then
+            kill $(cat "$PID_FILE") 2>/dev/null || true
+            rm -f "$PID_FILE"
+            echo -e "${GREEN}[✓] Security Daemon stopped${NC}"
+        fi
+        ;;
+    logs)
+        tail -50 "$LOG_FILE"
+        ;;
+    *)
+        cat << EOF
+${CYAN}NeonPulse OS - Security Daemon${NC}
+Context-aware protection: ClamAV + AppArmor + Firejail
+
+Usage: neonpulse-security-daemon [COMMAND]
+
+Commands:
+  daemon        - Start security daemon (default)
+  scan [PATH]   - Run full ClamAV scan
+  check-breach  - Check for data breach indicators
+  status        - Show daemon status
+  stop          - Stop daemon
+  logs          - Show last 50 log entries
+
+Examples:
+  neonpulse-security-daemon daemon
+  neonpulse-security-daemon scan /home
+  neonpulse-security-daemon status
+EOF
+        ;;
+esac

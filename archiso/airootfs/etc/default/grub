@@ -1,0 +1,44 @@
+### NeonPulse OS - Grub Configuration
+### UEFI Boot Loader Configuration
+
+GRUB_DEFAULT=0
+GRUB_TIMEOUT=5
+GRUB_DISTRIBUTOR="NeonPulse"
+GRUB_CMDLINE_LINUX_DEFAULT="quiet loglevel=3 nvidia-drm.modeset=1 nvidia-drm.fbdev=1 amdgpu.gpu_recovery=1"
+GRUB_CMDLINE_LINUX="preempt=full"
+
+#GRUB_PRELOAD_MODULES="part_gpt part_msdos"
+GRUB_GFXMODE=auto
+GRUB_GFXPAYLOAD_LINUX=keep
+
+#GRUB_BACKGROUND="/usr/share/grub/background.png"
+GRUB_THEME="/usr/share/grub/themes/neonpulse/theme.txt"
+
+#GRUB_COLOR_NORMAL="light-blue/black"
+#GRUB_COLOR_HIGHLIGHT="light-cyan/blue"
+
+### For inode_readahead_cnt see man 8 mkinitcpio.
+#GRUB_EARLY_INITRD_LINUX_CUSTOM="microcode.cpio.gz"
+#GRUB_EARLY_INITRD_LINUX_STOCK="microcode.cpio.gz"
+
+###
+# Uncomment to enable BadRAM checking, by listing the memory addresses
+# of the start,length (in bytes) sections of RAM you want to omit.
+# overflow past end of memory so that it starts at the beginning of the next
+# line. See grub documentation for more info on BadRAM.
+# GRUB_BADRAM="0x00000000,0xFFFFFFFF"
+
+###
+# Uncomment to enable Secure Boot support. Provide the name of the image you generated the signature for.
+#GRUB_SECUREBOOT_MODELS="(unknown)"
+
+###
+# Uncomment to enable SearX search
+#GRUB_ENABLE_SEARX=true
+
+###
+# Uncomment to disable os-prober, to speed up grub-mkconfig on multi-os installs
+#GRUB_DISABLE_OS_PROBER=true
+
+# Archiso
+GRUB_DISABLE_SUBMENU=y

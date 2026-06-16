@@ -1,0 +1,47 @@
+GNU GENERAL PUBLIC LICENSE
+Version 3, 29 June 2007
+
+Copyright (C) 2026 NeonPulse OS Contributors
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+---
+
+COMPONENTS & ATTRIBUTIONS:
+
+Base Distribution:
+- Arch Linux (https://archlinux.org) - GPL v2+
+
+Desktop Environment:
+- Hyprland (https://hyprland.org) - BSD 3-Clause License
+- Waybar (https://github.com/Alexays/Waybar) - MIT License
+
+System Tools:
+- systemd - LGPL v2.1+
+- PipeWire - MIT License
+- Linux Kernel (linux-zen) - GPL v2+
+
+Applications:
+- Brave Browser - MPL 2.0
+- GNOME/KDE libraries - LGPL/GPL
+- Various open-source games and tools
+
+Original NeonPulse OS Code:
+- Resource Guard - GPL v3
+- Security Daemon - GPL v3
+- First-Boot Script - GPL v3
+- Hyprland Configuration - CC0 1.0
+- Waybar Configuration & CSS - CC0 1.0
+
+All contributions are welcome under these terms!

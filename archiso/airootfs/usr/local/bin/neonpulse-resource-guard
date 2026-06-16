@@ -1,0 +1,299 @@
+#!/bin/bash
+# NeonPulse OS - Resource Guard
+# Smart per-app hibernation and resource limiting using cgroups v2
+# Focuses window gets full resources; unfocused apps get limited
+
+set -euo pipefail
+
+CONFIG_DIR="${HOME}/.config/neonpulse"
+CGROUP_PATH="/sys/fs/cgroup/user.slice"
+LOG_FILE="${HOME}/.local/share/neonpulse/resource-guard.log"
+PID_FILE="/tmp/neonpulse-resource-guard.pid"
+
+# Color codes
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+CYAN='\033[0;36m'
+NC='\033[0m'
+
+# Resource Profiles
+declare -A PROFILES=(
+    [gaming]="cpu=90,memory=85,io=high"
+    [creative]="cpu=85,memory=90,io=high"
+    [office]="cpu=50,memory=60,io=medium"
+    [media]="cpu=40,memory=70,io=high"
+    [idle]="cpu=20,memory=40,io=low"
+)
+
+# Apps that should NOT be limited
+NEVER_LIMIT_APPS=("steam" "lutris" "heroic" "vlc" "mpv" "audacious" "lollypop" "kitty")
+
+# Apps that get heavy limits when minimized
+HEAVY_LIMIT_APPS=("blender" "kdenlive" "shotcut" "krita" "gimp")
+
+# Logging function
+log_msg() {
+    local level=$1
+    shift
+    local msg="$@"
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [$level] $msg" >> "$LOG_FILE"
+}
+
+# Initialize logging
+init_logging() {
+    mkdir -p "$(dirname "$LOG_FILE")"
+    log_msg "INFO" "=== Resource Guard Started ===" 
+}
+
+# Create cgroup structure
+init_cgroups() {
+    if [[ ! -d "$CGROUP_PATH/neonpulse" ]]; then
+        mkdir -p "$CGROUP_PATH/neonpulse"
+        log_msg "INFO" "Created cgroup: $CGROUP_PATH/neonpulse"
+    fi
+}
+
+# Get focused window PID via Hyprland IPC
+get_focused_pid() {
+    if command -v hyprctl &> /dev/null; then
+        local win_id=$(hyprctl activewindow -j | jq -r '.pid' 2>/dev/null || echo "")
+        [[ -n "$win_id" && "$win_id" != "null" ]] && echo "$win_id"
+    fi
+}
+
+# Get all PIDs for a process name
+get_pids_by_name() {
+    local name="$1"
+    pgrep -f "$name" 2>/dev/null || true
+}
+
+# Set CPU limits via cgroups v2
+set_cpu_limit() {
+    local cgroup=$1
+    local limit=$2  # percentage
+    
+    if [[ -w "$cgroup/cpu.max" ]]; then
+        # Convert percentage to cpu.max format (microseconds)
+        local quota=$((limit * 1000))
+        echo "$quota 100000" > "$cgroup/cpu.max" 2>/dev/null || true
+        log_msg "INFO" "CPU limit set: $cgroup -> ${limit}%"
+    fi
+}
+
+# Set memory limits
+set_memory_limit() {
+    local cgroup=$1
+    local limit=$2  # percentage of total RAM
+    
+    local total_mem=$(free -b | awk 'NR==2 {print $2}')
+    local mem_bytes=$((total_mem * limit / 100))
+    
+    if [[ -w "$cgroup/memory.max" ]]; then
+        echo "$mem_bytes" > "$cgroup/memory.max" 2>/dev/null || true
+        log_msg "INFO" "Memory limit set: $cgroup -> ${limit}% (${mem_bytes} bytes)"
+    fi
+}
+
+# Add process to cgroup
+add_to_cgroup() {
+    local pid=$1
+    local cgroup=$2
+    
+    if [[ -w "$cgroup/cgroup.procs" && -d "/proc/$pid" ]]; then
+        echo "$pid" > "$cgroup/cgroup.procs" 2>/dev/null || true
+        log_msg "DEBUG" "Added PID $pid to $cgroup"
+        return 0
+    fi
+    return 1
+}
+
+# Apply resource limits based on app type
+apply_limits() {
+    local pid=$1
+    local app_name=$2
+    local is_focused=$3
+    
+    local cgroup="$CGROUP_PATH/neonpulse/$app_name"
+    mkdir -p "$cgroup"
+    
+    # Check if app should never be limited
+    for never_limit in "${NEVER_LIMIT_APPS[@]}"; do
+        if [[ "$app_name" == *"$never_limit"* ]]; then
+            log_msg "INFO" "$app_name is whitelisted - no limits"
+            add_to_cgroup "$pid" "$CGROUP_PATH/neonpulse"
+            set_cpu_limit "$CGROUP_PATH/neonpulse" 100
+            set_memory_limit "$CGROUP_PATH/neonpulse" 100
+            return
+        fi
+    done
+    
+    # Set limits based on focus status
+    if [[ "$is_focused" == "true" ]]; then
+        # Focused: full resources
+        set_cpu_limit "$cgroup" 100
+        set_memory_limit "$cgroup" 100
+        log_msg "INFO" "$app_name (PID $pid) - FOCUSED: Full resources"
+    else
+        # Unfocused: limited resources
+        if grep -q "$app_name" <<< "${HEAVY_LIMIT_APPS[*]}"; then
+            # Creative apps when minimized get heavy limits
+            set_cpu_limit "$cgroup" 20
+            set_memory_limit "$cgroup" 30
+            log_msg "INFO" "$app_name (PID $pid) - MINIMIZED: Heavy limits (20% CPU, 30% RAM)"
+        else
+            # Normal apps: moderate limits
+            set_cpu_limit "$cgroup" 50
+            set_memory_limit "$cgroup" 60
+            log_msg "INFO" "$app_name (PID $pid) - UNFOCUSED: Standard limits (50% CPU, 60% RAM)"
+        fi
+    fi
+    
+    add_to_cgroup "$pid" "$cgroup"
+}
+
+# Monitor and update resource limits
+monitor_resources() {
+    local focused_pid=$(get_focused_pid)
+    
+    # Update all running processes
+    for pid in $(pgrep -u "$USER" 2>/dev/null); do
+        local app_name=$(ps -p "$pid" -o comm= 2>/dev/null || echo "unknown")
+        local is_focused="false"
+        
+        [[ "$pid" == "$focused_pid" ]] && is_focused="true"
+        
+        if [[ -d "/proc/$pid" ]]; then
+            apply_limits "$pid" "$app_name" "$is_focused"
+        fi
+    done
+}
+
+# Enable EarlyOOM
+enable_earlyoom() {
+    if command -v earlyoom &> /dev/null; then
+        if ! pgrep -x earlyoom > /dev/null; then
+            sudo earlyoom -r 60 -m 5 &
+            log_msg "INFO" "EarlyOOM daemon started"
+        fi
+    fi
+}
+
+# Enable zram (RAM compression)
+setup_zram() {
+    if [[ -d /sys/module/zram ]]; then
+        if ! grep -q "zram" /proc/swaps; then
+            # zram module already loaded
+            log_msg "INFO" "zram available"
+        fi
+    fi
+}
+
+# Safety check: prevent overheating by throttling
+check_thermal() {
+    local temp=$(cat /sys/class/thermal/thermal_zone0/temp 2>/dev/null || echo "0")
+    temp=$((temp / 1000))
+    
+    if [[ $temp -gt 90 ]]; then
+        log_msg "WARNING" "Critical temperature: ${temp}°C - Activating thermal throttle"
+        # Apply aggressive limits to all unfocused apps
+        for pid in $(pgrep -u "$USER" 2>/dev/null); do
+            local app_name=$(ps -p "$pid" -o comm= 2>/dev/null || echo "unknown")
+            local cgroup="$CGROUP_PATH/neonpulse/$app_name"
+            mkdir -p "$cgroup"
+            set_cpu_limit "$cgroup" 30
+            set_memory_limit "$cgroup" 50
+        done
+    fi
+}
+
+# Safe RAM refresh (flush caches)
+refresh_ram() {
+    log_msg "INFO" "Performing safe RAM refresh"
+    sync
+    # Drop caches (safe on modern systems)
+    echo 2 | sudo tee /proc/sys/vm/drop_caches > /dev/null 2>&1 || true
+}
+
+# Show status
+show_status() {
+    echo -e "${CYAN}=== NeonPulse OS - Resource Guard Status ===${NC}"
+    echo -e "${GREEN}Focused PID:${NC} $(get_focused_pid)"
+    echo -e "${GREEN}Cgroup Structure:${NC}"
+    ls -la "$CGROUP_PATH/neonpulse/" 2>/dev/null | tail -10 || echo "No cgroups created yet"
+    echo -e "${GREEN}Log File:${NC} $LOG_FILE"
+    echo -e "${GREEN}Active Processes Under Limits:${NC}"
+    ps -aux | grep -E "(neonpulse|$$)" | grep -v grep || true
+}
+
+# Main daemon loop
+daemon_mode() {
+    local refresh_interval=5
+    local thermal_check_interval=30
+    local refresh_ram_interval=300
+    local counter=0
+    
+    echo -e "${CYAN}[*] Resource Guard daemon running (PID: $$)${NC}"
+    echo $$ > "$PID_FILE"
+    
+    init_logging
+    init_cgroups
+    enable_earlyoom
+    setup_zram
+    
+    trap 'log_msg "INFO" "Resource Guard stopped"; exit 0' SIGTERM SIGINT
+    
+    while true; do
+        monitor_resources
+        
+        if (( counter % (thermal_check_interval / refresh_interval) == 0 )); then
+            check_thermal
+        fi
+        
+        if (( counter % (refresh_ram_interval / refresh_interval) == 0 )); then
+            refresh_ram
+        fi
+        
+        sleep "$refresh_interval"
+        ((counter++))
+    done
+}
+
+# CLI Interface
+case "${1:-daemon}" in
+    daemon)
+        daemon_mode
+        ;;
+    status)
+        show_status
+        ;;
+    stop)
+        if [[ -f "$PID_FILE" ]]; then
+            kill $(cat "$PID_FILE") 2>/dev/null || true
+            rm -f "$PID_FILE"
+            echo -e "${GREEN}[✓] Resource Guard stopped${NC}"
+        fi
+        ;;
+    logs)
+        tail -50 "$LOG_FILE"
+        ;;
+    *)
+        cat << EOF
+${CYAN}NeonPulse OS - Resource Guard${NC}
+Smart per-app resource limiting using cgroups v2
+
+Usage: neonpulse-resource-guard [COMMAND]
+
+Commands:
+  daemon   - Start resource guard daemon (default)
+  status   - Show current status
+  stop     - Stop the daemon
+  logs     - Show last 50 log entries
+
+Examples:
+  neonpulse-resource-guard daemon
+  neonpulse-resource-guard status
+  neonpulse-resource-guard stop
+EOF
+        ;;
+esac

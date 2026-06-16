@@ -1,0 +1,26 @@
+#!/bin/bash
+# NeonPulse OS - Installation hooks for root filesystem setup
+
+run_hook() {
+    msg "Setting up NeonPulse OS..."
+    
+    # Enable multilib (for 32-bit game support)
+    sed -i "/^\[multilib\]/,/^$/s/^#//" /etc/pacman.conf
+    
+    # Setup hostname
+    echo "neonpulse" > /etc/hostname
+    
+    # Create automount for common directories
+    mkdir -p /mnt/media
+    mkdir -p /mnt/games
+    
+    # Enable services
+    systemctl enable NetworkManager.service
+    systemctl enable bluetooth.service
+    systemctl enable thermald.service
+    
+    # Make scripts executable
+    chmod +x /usr/local/bin/neonpulse-*
+    
+    msg "NeonPulse OS setup complete!"
+}
