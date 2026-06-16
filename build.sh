@@ -14,9 +14,9 @@ NC='\033[0m'
 # Configuration
 ISO_NAME="neonpulse"
 ISO_VERSION="1.0.0"
-BUILD_DIR="./build"
-OUT_DIR="./out"
-ARCHISO_DIR="./archiso"
+BUILD_DIR="/mnt/build"
+OUT_DIR="/mnt/out"
+ARCHISO_DIR="/mnt/archiso"
 
 # Functions
 log_step() {
@@ -63,9 +63,8 @@ build_iso() {
     log_step "Building NeonPulse OS ISO..."
     log_step "This may take 10-30 minutes depending on system speed and internet"
     
-    # Use the correct, minimal boot mode for modern UEFI systems
+    # Executing using native short-flags accepted by modern mkarchiso
     sudo mkarchiso -v -w "$BUILD_DIR" -o "$OUT_DIR" "$ARCHISO_DIR"
-
     
     if [[ $? -ne 0 ]]; then
         log_error "ISO build failed"
@@ -107,12 +106,12 @@ upload_release() {
     if ! command -v gh &> /dev/null; then
         log_error "GitHub CLI (gh) not installed. Cannot upload automatically."
         echo "Manual upload instructions:"
-        echo "  1. gh release create v$ISO_VERSION out/*"
+        echo "  1. gh release create v$ISO_VERSION $OUT_DIR/*"
         echo "  2. Visit https://github.com/yourusername/neonpulse-os/releases"
         return
     fi
     
-    # Upload with gh CLI
+    # Upload with gh CLI using our absolute drive pathways
     gh release create "v${ISO_VERSION}" \
         "$OUT_DIR"/${ISO_NAME}-*.iso \
         "$OUT_DIR"/*SUMS \
@@ -141,7 +140,7 @@ main() {
     echo "Output directory: $OUT_DIR"
     echo ""
     echo "Next steps:"
-    echo "  1. Test ISO: dd if=out/neonpulse-*.iso of=/dev/sdX bs=4M (replace sdX)"
+    echo "  1. Test ISO inside your isolated VirtualBox storage profile pool"
     echo "  2. Upload to GitHub: bash build.sh upload"
     echo "  3. Share and test!"
     echo ""
@@ -163,4 +162,4 @@ case "${1:-build}" in
     *)
         echo "Usage: $0 {build|clean|upload}"
         ;;
-esac
+case esac
