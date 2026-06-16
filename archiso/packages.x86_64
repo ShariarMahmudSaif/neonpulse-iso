@@ -7,9 +7,14 @@ linux-zen-headers
 linux-firmware
 amd-ucode
 intel-ucode
+
+# Bootloaders
 efibootmgr
-grub
 efivar
+grub
+syslinux
+mtools
+dosfstools
 
 # File Systems & Storage
 btrfs-progs
