@@ -1,79 +1,97 @@
-# 🌆 NeonPulse OS - Post-Installation Setup Guide
+# 🛠️ NeonPulse OS - ISO Compiling & Distribution Manual
 
-Welcome to the neon-drenched grid of **NeonPulse OS**. Follow this manual step-by-step to initialize your cyberpunk environment, scale your graphical pipeline, and learn the core window matrix interactions.
-
----
-
-## 📡 Step 1: Wire into the Grid (Network Setup)
-
-NeonPulse OS uses a minimal baseline stack. If your internet wasn't provisioned automatically during the core image flashing step, connect to your router manually:
-
-1. Open your terminal window and launch the interactive network module:
-   ```bash
-   nmtui
-   ```
-2. Select **Activate a connection**.
-3. Highlight your local Wi-Fi SSID network, enter your password, and select **Quit**.
-4. Verify your uplink status:
-   ```bash
-   ping -c 3 google.com
-   ```
+This technical manual details the foundational environment preparation, compilation pipelines, and secure extraction bridges required to compile the **NeonPulse OS** distribution installer image from source.
 
 ---
 
-## 🖥️ Step 2: Initialize Your Screen Parameters (Monitor Scaling)
+## 🖥️ Hardware Profile Requirements
 
-Because NeonPulse runs a highly performant **Wayland-native Hyprland** core compositor, monitor layouts are configured inside your primary state template file.
+The compilation matrix requires heavy package isolation, compilation extraction loops, and high-velocity squashfs compression. Ensure your host system meets these structural bounds before triggering the compilation script:
 
-1. Open your central compositor system script layout:
-   ```bash
-   nano ~/.config/hypr/hyprland.conf
-   ```
-2. Locate the monitors layout region near the top:
-   ```text
-   monitor=,preferred,auto,1
-   ```
-3. To configure a high-resolution display matrix (like a 2K or 4K laptop screen), update the scale factor at the very end of the string (e.g., change `1` to `1.25` or `1.5` for balanced blurred glass scaling metrics).
-4. Save your parameters using `Ctrl + O`, hit `Enter`, and exit using `Ctrl + X`.
+| Resource Dimension | Minimum Baseline Specs | Recommended Performance Grid |
+| :--- | :--- | :--- |
+| 🧠 **System Memory (RAM)** | 4 GB | 8 GB |
+| 🎛️ **Processing Power** | 4 CPU Cores | 6 CPU Cores |
+| 💾 **Drive Space (Disk Pool)** | 50 GB | 128 GB Persistent Storage |
 
 ---
 
-## 🎹 Step 3: Master the Cyberpunk Window Matrix (Keybindings)
+## ⚡ Processor Optimization Profiles (Intel vs. AMD)
 
-NeonPulse moves away from bloated traditional mouse menus. Memory-efficient workflow navigation uses specific mechanical keyboard hooks.
+Before provisioning your virtual environment, ensure your host computer's motherboard has hardware virtualization flags activated in the BIOS/UEFI layer.
 
-### 🛡️ Core Infrastructure Binds
-*   `Super + Q` ── Launch **Kitty** (Your primary cyberpunk terminal engine)
-*   `Super + C` ── Terminate / Kill the active focused window space
-*   `Super + M` ── Force exit the current Hyprland Wayland environment session
-*   `Super + E` ── Toggle your window splitting alignment layout (Horizontal / Vertical)
-*   `Super + Space` ── Launch **Rofi** (Your interactive fuzzy application launcher portal)
+### 🔷 For Intel Core/Xeon Processors
+*   **Motherboard BIOS Option:** Turn on **Intel Virtualization Technology (Intel VT-x)** and **VT-d**.
+*   **VirtualBox VM Configuration:** Navigate to *Settings -> System -> Processor* and check the box for **Enable PAE/NX**. Under *Acceleration*, ensure paravirtualization is mapped to **KVM** or **Default**.
 
-### 🔲 Focus Grid Matrix Navigation
-Hold your system **`Super`** key (Windows key) and use these key sequences to shift focus instantly across splitting windows without a trackpad:
-*   `Super + H` ── Focus Left
-*   `Super + L` ── Focus Right
-*   `Super + K` ── Focus Up
-*   `Super + J` ── Focus Down
+### 🟩 For AMD Ryzen/EPYC Processors
+*   **Motherboard BIOS Option:** Turn on **SVM Mode** (Secure Virtual Machine) or **AMD-V**.
+*   **VirtualBox VM Configuration:** Under *Settings -> System -> Processor*, assign your dedicated core boundaries (4 to 6 cores). Ryzen's multi-threading structure executes high-speed compilation routines automatically inside the virtual sandbox.
 
 ---
 
-## ⚡ Step 4: Tune Your Custom Resource Guard (Performance Tuning)
+## 🏗️ Phase 1: Environment & Sandbox Provisioning
 
-NeonPulse includes custom cgroups v2 profiling and memory compression hooks optimized for smoother operation on tightly resourced laptop hardware.
+Because raw live RAM filesystems lack sufficient headroom to process heavy package generation trees, you must map all workspace procedures straight onto your persistent virtual hard drive device. Run these allocation commands line-by-line:
 
-1. **Verify your zram tracking capacity:**
-   ```bash
-   zramctl
-   ```
-   *(This ensures your system is actively compressing background background cache to keep your memory footprint low).*
-2. **Review background EarlyOOM safe switches:**
-   ```bash
-   systemctl status earlyoom
-   ```
-   *(This utility actively monitors resource spikes during high-load asset building tasks, protecting your active core system layer from memory lockups).*
+```bash
+# 1. Initialize a clean GPT signature on the primary hard disk container
+sfdisk /dev/sda <<< "label: gpt"
+
+# 2. Carve out a primary persistent partition workspace slice
+sfdisk /dev/sda <<< ", ,"
+
+# 3. Format the new partition space into a clean Linux ext4 framework
+mkfs.ext4 /dev/sda1
+
+# 4. Map the physical partition drive straight to the system path
+mount /dev/sda1 /mnt
+
+# 5. Provision the pacman package and tracking database directories on the disk
+mkdir -p /mnt/var/lib/pacman /mnt/var/cache/pacman/pkg
+
+# 6. Install the development tools directly onto the spacious partition space
+pacman -Sy --confirm --root /mnt --cachedir /mnt/var/cache/pacman/pkg git base-devel archiso
+```
 
 ---
 
-## 🎨 Step 5: Refresh the Graphical Asset Matrix
-If you want to cycle your background cyberpunk glass panels or adjust Waybar layouts on the fly, tap `Super + Shift + R` to instantly trigger a hot-reload of your background environmental variables!
+## 🚀 Phase 2: Compilation Loop Execution
+
+1. Step out of the temporary live layout jail environment for a brief moment to map working network mirrors straight into your drive space:
+   ```bash
+   exit
+   cp /etc/pacman.d/mirrorlist /mnt/etc/pacman.d/mirrorlist
+   ```
+2. Step back inside your dedicated drive workspace sandbox jail:
+   ```bash
+   arch-chroot /mnt
+   ```
+3. Enter your project workspace folder, grant executable rights, and launch the compiler script:
+   ```bash
+   cd neonpulse-iso
+   chmod +x build.sh
+   ./build.sh
+   ```
+
+---
+
+## 📥 Phase 3: Secure ISO Extraction to Windows Host
+
+Because text-only CLI shells do not contain a graphical clipboard engine, default VirtualBox shared folder/clipboard hooks are unavailable. Use this secure network terminal bridge to pull your completed installer image directly onto your real Windows Desktop frame:
+
+### 1. Enable Secure Remote Sharing Inside the VM Terminal:
+```bash
+passwd root
+systemctl start sshd
+ip a
+```
+*(Note down the local `inet` network IP address number string, for example: `192.168.1.50`).*
+
+### 2. Pull the File from Your Windows Terminal Matrix:
+Open a standard **Windows Command Prompt (`cmd`)** or **PowerShell** window on your physical machine, replace `YOUR_VM_IP` with your noted number string, and execute:
+
+```cmd
+scp root@YOUR_VM_IP:/mnt/out/neonpulse-1.0.0-x86_64.iso %USERPROFILE%\Desktop\
+```
+3. Type **`yes`** if prompted to verify host key signatures, then input the root password you created in Step 1. Your customized **`neonpulse-1.0.0-x86_64.iso`** file will download straight onto your physical Windows Desktop screen!
