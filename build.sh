@@ -162,4 +162,4 @@ case "${1:-build}" in
     *)
         echo "Usage: $0 {build|clean|upload}"
         ;;
-case esac
+esac
